@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>mboard</h1>
+
+    <form id="post-form">
+      <input id="name" name="name" placeholder="Your name" maxlength="40" required>
+      <textarea id="text" name="text" placeholder="Write a message…" maxlength="500" rows="3" required></textarea>
+      <div class="row">
+        <span id="status" role="status"></span>
+        <button type="submit">Post</button>
+      </div>
+    </form>
+
+    <div class="row">
+      <h2>Messages</h2>
+      <button id="refresh" type="button" class="secondary">Refresh</button>
+    </div>
+    <ul id="messages"></ul>
+    <button id="older" type="button" class="secondary" hidden>Load older</button>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
