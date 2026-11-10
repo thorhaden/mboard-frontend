@@ -35,14 +35,17 @@ main { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
 h1 { margin: 0 0 16px; }
 h2 { margin: 0; font-size: 1.1rem; }
 
-form, li {
+#post-form, li, dialog {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
 }
 
-form { display: grid; gap: 8px; margin-bottom: 24px; }
+#post-form { display: grid; gap: 8px; margin-bottom: 24px; }
+
+.image-input { display: grid; gap: 4px; color: var(--muted); font-size: .9rem; }
+.image-input input { padding: 6px; }
 
 input, textarea {
   width: 100%;
@@ -67,6 +70,7 @@ button.secondary { color: var(--accent); background: transparent; border: 1px so
 button:disabled { opacity: .6; cursor: default; }
 
 .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.row.end { justify-content: flex-end; margin: 8px 0 0; }
 
 #status { color: var(--muted); font-size: .9rem; }
 #status.error { color: var(--error); }
@@ -76,3 +80,16 @@ ul { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
 .meta { color: var(--muted); font-size: .85rem; }
 .meta strong { color: var(--text); }
 .text { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* A message with an image: text on the left, thumbnail (at most 140×140) on the right. */
+li { display: flex; align-items: flex-start; gap: 12px; }
+li .body { flex: 1; min-width: 0; }
+.thumb { flex: none; padding: 0; line-height: 0; background: none; border-radius: 6px; cursor: zoom-in; }
+.thumb img { display: block; max-width: 140px; max-height: 140px; border-radius: 6px; }
+
+/* Large view. The script sets the image's size to fit the window; the dialog wraps it. */
+dialog { max-width: 95vw; max-height: 95vh; color: var(--text); }
+dialog::backdrop { background: rgb(0 0 0 / .7); }
+#viewer-link { display: block; cursor: zoom-in; }
+#viewer-img { display: block; margin: 0 auto 8px; border-radius: 4px; object-fit: contain; }
+#viewer .text { max-width: 60ch; }

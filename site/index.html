@@ -13,6 +13,10 @@
     <form id="post-form">
       <input id="name" name="name" placeholder="Your name" maxlength="40" required>
       <textarea id="text" name="text" placeholder="Write a message…" maxlength="500" rows="3" required></textarea>
+      <label class="image-input">
+        Image (optional, up to 10 MB)
+        <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+      </label>
       <div class="row">
         <span id="status" role="status"></span>
         <button type="submit">Post</button>
@@ -26,6 +30,18 @@
     <ul id="messages"></ul>
     <button id="older" type="button" class="secondary" hidden>Load older</button>
   </main>
+
+  <!-- Large view of a message's image. Clicking the image opens the original in a new tab. -->
+  <dialog id="viewer" aria-label="Image">
+    <a id="viewer-link" target="_blank" rel="noopener" title="Open the original in a new tab">
+      <img id="viewer-img" alt="">
+    </a>
+    <div id="viewer-meta" class="meta"></div>
+    <p id="viewer-text" class="text"></p>
+    <form method="dialog" class="row end">
+      <button type="submit" class="secondary">Close</button>
+    </form>
+  </dialog>
 
   <script src="app.js"></script>
 </body>

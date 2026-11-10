@@ -15,7 +15,25 @@ Start the API locally as described in `mboard-backend`'s README, then:
 make serve
 ```
 
-Open http://localhost:8080. When the page is served from `localhost`, it calls the API on http://localhost:8000.
+Open http://localhost:8080. When the page is served from `localhost`, it calls the API on http://localhost:8000. Image uploads work against the local API, but images don't display: resized images and originals are served by the resize Lambda and CloudFront, which don't run locally.
+
+## Images
+A message can have one image attached: JPEG, PNG, WebP or GIF, up to 10 MB. Posting with an image takes three requests:
+1. `POST /api/uploads` returns a presigned POST.
+2. The file goes straight to S3 with it.
+3. `POST /api/messages` includes the returned `image_id`.
+
+The API's README has the details.
+
+Images are shown at a few fixed sizes from `/api/images/<id>/<size>`. That keeps the number of variants CloudFront caches per image small, whatever screens visitors have:
+
+| Where | Size |
+|---|---|
+| Next to the message text | 140, a thumbnail of at most 140×140 |
+| Large view, opened by clicking the thumbnail | 480, 960 or 1920, the smallest that covers the space it's shown in |
+| Clicking the large image | The original at `/images/<id>`, in a new tab |
+
+For the large view, the page works out how big the image will be shown. It may take up to 90% of the window's width and 70% of its height, leaving room for the message below. It uses the thumbnail's aspect ratio, and multiplies by `devicePixelRatio` for high-DPI screens. Until the larger image arrives, the view shows the thumbnail scaled up. A small original is never shown larger than its own size.
 
 ## Deploy
 ```bash
