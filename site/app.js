@@ -37,10 +37,33 @@ function setStatus(msg, isError = false) {
 const imageUrl = (id, size) => `${API}/api/images/${id}/${size}`;
 const originalUrl = (id) => `${API}/images/${id}`;
 
+// The viewer's time zone. Some privacy settings hide it, and the browser then reports UTC or none
+// at all; times then show their UTC offset, so they're never mistaken for local ones.
+const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const SHOW_OFFSET = !TIME_ZONE || ["Etc/Unknown", "UTC", "Etc/UTC"].includes(TIME_ZONE);
+
+const pad = (n) => String(n).padStart(2, "0");
+
+// ISO 8601 in the viewer's time zone, to the minute: 2026-11-11 14:32, or 2026-11-11 13:32+00:00.
+function formatTime(date) {
+  let s = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+    `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  if (SHOW_OFFSET) {
+    const offset = -date.getTimezoneOffset(); // minutes ahead of UTC
+    const abs = Math.abs(offset);
+    s += `${offset < 0 ? "-" : "+"}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+  }
+  return s;
+}
+
 function renderMeta(el, m) {
   const who = document.createElement("strong");
   who.textContent = m.name;
-  el.replaceChildren(who, " · " + new Date(m.created_at).toLocaleString());
+  const time = document.createElement("time");
+  time.dateTime = m.created_at; // the exact UTC timestamp, for machines and the tooltip
+  time.title = m.created_at;
+  time.textContent = formatTime(new Date(m.created_at));
+  el.replaceChildren(who, " · ", time);
 }
 
 // Messages are user input: build DOM nodes with textContent, never innerHTML.
