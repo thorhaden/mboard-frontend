@@ -3,7 +3,8 @@
 #
 #   scripts/deploy.sh
 #
-# The bucket and distribution come from SSM parameters written by the infra stack.
+# The bucket, distribution and sign-in settings come from SSM parameters written by the infra stack.
+# The sign-in settings go into config.js, replacing the committed one, which is for running locally.
 # Refuses to run with uncommitted changes, so the live site always matches a commit;
 # roll back by checking out an earlier commit and deploying again.
 set -euo pipefail
@@ -18,6 +19,14 @@ fi
 param() { aws ssm get-parameter --name "$1" --query Parameter.Value --output text; }
 bucket=$(param /mboard/frontend/bucket)
 distribution=$(param /mboard/frontend/distribution-id)
+auth_url=$(param /mboard/frontend/auth-url)
+auth_client_id=$(param /mboard/frontend/auth-client-id)
+
+# What gets deployed: site/ with the deployed stack's config.js.
+stage=$(mktemp -d)
+trap 'rm -rf "$stage"' EXIT
+cp -R site/. "$stage/"
+printf 'window.AUTH_CONFIG = { url: "%s", clientId: "%s" };\n' "$auth_url" "$auth_client_id" > "$stage/config.js"
 
 # Compare contents, not timestamps: a fresh clone makes every file look newer, so `aws s3 sync`
 # would re-upload everything. For files uploaded in one part (the CLI does that below 8 MB), the
@@ -29,10 +38,10 @@ done < <(aws s3api list-objects-v2 --bucket "$bucket" --query 'Contents[].[Key,E
 
 changed=()
 while IFS= read -r -d '' file; do
-  key=${file#site/}
+  key=${file#"$stage"/}
   [ "${remote[$key]:-}" = "$(md5sum "$file" | cut -d' ' -f1)" ] || changed+=("$key")
   unset "remote[$key]"
-done < <(find site -type f -print0)
+done < <(find "$stage" -type f -print0)
 deleted=("${!remote[@]}") # in the bucket but no longer in site/
 
 if [ ${#changed[@]} -eq 0 ] && [ ${#deleted[@]} -eq 0 ]; then
@@ -43,7 +52,7 @@ fi
 [ ${#deleted[@]} -gt 0 ] && echo "deleted: ${deleted[*]}"
 
 # --delete removes files that are no longer in site/.
-aws s3 sync site/ "s3://$bucket/" --delete --no-progress
+aws s3 sync "$stage/" "s3://$bucket/" --delete --no-progress
 
 # The files' names don't change between versions, so CloudFront would keep serving cached
 # copies for up to a day. "/*" counts as one path; the first 1,000 paths a month are free.

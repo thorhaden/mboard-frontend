@@ -32,7 +32,10 @@ body {
 
 main { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
 
-h1 { margin: 0 0 16px; }
+h1 { margin: 0; }
+header { margin-bottom: 16px; }
+#account { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .9rem; }
+#account[hidden] { display: none; }
 h2 { margin: 0; font-size: 1.1rem; }
 
 #post-form, li, dialog {

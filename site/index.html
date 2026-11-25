@@ -8,10 +8,15 @@
 </head>
 <body>
   <main>
-    <h1>mboard</h1>
+    <header class="row">
+      <h1>mboard</h1>
+      <div id="account" hidden>
+        <span id="username"></span>
+        <button id="sign-out" type="button" class="secondary">Sign out</button>
+      </div>
+    </header>
 
     <form id="post-form">
-      <input id="name" name="name" placeholder="Your name" maxlength="40" required>
       <textarea id="text" name="text" placeholder="Write a message…" maxlength="500" rows="3" required></textarea>
       <label class="image-input">
         Image (optional, up to 10 MB)
@@ -43,6 +48,8 @@
     </form>
   </dialog>
 
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

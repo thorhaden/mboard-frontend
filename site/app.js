@@ -14,7 +14,6 @@ const VIEWER_MAX_WIDTH = 0.9;
 const VIEWER_MAX_HEIGHT = 0.7;
 
 const form = document.getElementById("post-form");
-const nameInput = document.getElementById("name");
 const textInput = document.getElementById("text");
 const imageInput = document.getElementById("image");
 const statusEl = document.getElementById("status");
@@ -26,6 +25,9 @@ const viewerLink = document.getElementById("viewer-link");
 const viewerImg = document.getElementById("viewer-img");
 const viewerMeta = document.getElementById("viewer-meta");
 const viewerText = document.getElementById("viewer-text");
+const account = document.getElementById("account");
+const usernameEl = document.getElementById("username");
+const signOutBtn = document.getElementById("sign-out");
 
 let nextCursor = null;
 
@@ -34,6 +36,19 @@ function setStatus(msg, isError = false) {
   statusEl.classList.toggle("error", isError);
 }
 
+// fetch() for the API, with the signed-in user's access token. If the API answers 401 anyway, the
+// token may have been revoked, so it tries once more with a fresh one (or the browser goes to sign in).
+async function api(url, options = {}) {
+  const send = async (refresh) => {
+    const token = await auth.token({ refresh });
+    const headers = { ...options.headers, ...(token && { authorization: `Bearer ${token}` }) };
+    return fetch(url, { ...options, headers });
+  };
+  const res = await send(false);
+  return res.status === 401 ? send(true) : res;
+}
+
+// Images are loaded with <img src>, which can't send a token. The API serves them without one.
 const imageUrl = (id, size) => `${API}/api/images/${id}/${size}`;
 const originalUrl = (id) => `${API}/images/${id}`;
 
@@ -152,7 +167,7 @@ async function load({ append = false } = {}) {
   const url = new URL(API + "/api/messages", location.href);
   if (append && nextCursor) url.searchParams.set("cursor", nextCursor);
   try {
-    const res = await fetch(url);
+    const res = await api(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
     if (!append) list.replaceChildren();
@@ -167,7 +182,7 @@ async function load({ append = false } = {}) {
 
 // Uploads the file straight to S3 with a presigned POST from the API, and returns its image_id.
 async function uploadImage(file) {
-  const res = await fetch(API + "/api/uploads", {
+  const res = await api(API + "/api/uploads", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ content_type: file.type }),
@@ -178,6 +193,7 @@ async function uploadImage(file) {
   const data = new FormData();
   for (const [key, value] of Object.entries(upload.fields)) data.append(key, value);
   data.append("file", file); // S3 ignores any fields after the file
+  // Straight to S3, without the token: the presigned POST is what authorizes it.
   const s3res = await fetch(upload.url, { method: "POST", body: data });
   if (!s3res.ok) throw new Error(`upload failed, HTTP ${s3res.status}`);
   return upload.image_id;
@@ -209,13 +225,13 @@ form.addEventListener("submit", async (e) => {
       imageId = await uploadImage(file);
     }
     setStatus("Posting…");
-    const res = await fetch(API + "/api/messages", {
+    // No name: the API takes the author from the access token.
+    const res = await api(API + "/api/messages", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: nameInput.value, text: textInput.value, image_id: imageId }),
+      body: JSON.stringify({ text: textInput.value, image_id: imageId }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    try { localStorage.setItem("mboard-name", nameInput.value); } catch {}
     textInput.value = "";
     imageInput.value = "";
     setStatus("");
@@ -229,6 +245,22 @@ form.addEventListener("submit", async (e) => {
 
 olderBtn.addEventListener("click", () => load({ append: true }));
 refreshBtn.addEventListener("click", () => load());
+signOutBtn.addEventListener("click", () => auth.signOut());
 
-try { nameInput.value = localStorage.getItem("mboard-name") || ""; } catch {}
-load();
+// Signs in first: when not signed in, auth.start() sends the browser to Cognito's sign-in page.
+async function start() {
+  let username;
+  try {
+    username = await auth.start();
+  } catch (err) {
+    setStatus(`Could not sign in (${err.message}). Reload the page to try again.`, true);
+    return;
+  }
+  if (username) {
+    usernameEl.textContent = username;
+    account.hidden = false;
+  }
+  load();
+}
+
+start();
